@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getBear, type Bear } from "@/lib/bears";
 import {
   GAMES,
   ROUND_LABELS,
   ROUND_POINTS,
+  clearDownstream,
   contestants,
   type Game
 } from "@/lib/bracket";
@@ -27,14 +28,30 @@ type AppState = {
 
 const PLAYER_IDS: PlayerId[] = PLAYERS.map((player) => player.id);
 
+function mergeAppState(prev: AppState | null, incoming: AppState): AppState {
+  if (!prev) return incoming;
+  const picks = { ...incoming.picks };
+  for (const [id, local] of Object.entries(prev.picks)) {
+    picks[id] = { ...local, ...picks[id] };
+  }
+  return {
+    ...incoming,
+    picks,
+    results: { ...prev.results, ...incoming.results }
+  };
+}
+
 export function ChampionshipApp() {
   const [state, setState] = useState<AppState | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [error, setError] = useState("");
+  const loadSeq = useRef(0);
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const res = await fetch("/api/state", { cache: "no-store" });
     const payload = await res.json().catch(() => null);
+    if (seq !== loadSeq.current) return;
     if (res.status === 401) {
       setState(null);
       setAuthChecked(true);
@@ -45,9 +62,14 @@ export function ChampionshipApp() {
       setAuthChecked(true);
       return;
     }
-    setState(payload as AppState);
+    setState((prev) => mergeAppState(prev, payload as AppState));
     setAuthChecked(true);
     setError("");
+  }, []);
+
+  const applyState = useCallback((updater: (prev: AppState) => AppState) => {
+    loadSeq.current += 1;
+    setState((prev) => (prev ? updater(prev) : prev));
   }, []);
 
   useEffect(() => {
@@ -93,9 +115,9 @@ export function ChampionshipApp() {
   return (
     <Shell>
       {state.session.isAdmin ? (
-        <AdminView state={state} onRefresh={load} />
+        <AdminView state={state} onRefresh={load} onApply={applyState} />
       ) : (
-        <PlayerView state={state} onRefresh={load} />
+        <PlayerView state={state} onRefresh={load} onApply={applyState} />
       )}
     </Shell>
   );
@@ -191,10 +213,12 @@ function LoginScreen({
 
 function PlayerView({
   state,
-  onRefresh
+  onRefresh,
+  onApply
 }: {
   state: AppState;
   onRefresh: () => Promise<void>;
+  onApply: (updater: (prev: AppState) => AppState) => void;
 }) {
   const playerId = state.session.userId as PlayerId;
   const [viewing, setViewing] = useState<PlayerId>(playerId);
@@ -207,21 +231,41 @@ function PlayerView({
 
   async function pick(gameId: GameId, bearId: string) {
     if (!canEdit) return;
+    const current = state.picks[playerId] ?? {};
+    const nextPicks: Picks = {
+      ...clearDownstream(current, gameId, current[gameId]),
+      [gameId]: bearId
+    };
+    onApply((prev) => ({
+      ...prev,
+      picks: { ...prev.picks, [playerId]: nextPicks }
+    }));
     setBusy(true);
     setMessage("");
-    const res = await fetch("/api/picks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gameId, bearId })
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMessage(data.error ?? "Could not save pick.");
-      await onRefresh();
-      return;
+    try {
+      const res = await fetch("/api/picks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId, bearId })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error ?? "Could not save pick.");
+        await onRefresh();
+        return;
+      }
+      onApply((prev) => ({
+        ...prev,
+        picks: { ...prev.picks, ...data.picks },
+        scores: data.scores ?? prev.scores,
+        submitted: {
+          ...prev.submitted,
+          [playerId]: Boolean(data.complete)
+        }
+      }));
+    } finally {
+      setBusy(false);
     }
-    await onRefresh();
   }
 
   async function logout() {
@@ -269,21 +313,38 @@ function PlayerView({
 
 function AdminView({
   state,
-  onRefresh
+  onRefresh,
+  onApply
 }: {
   state: AppState;
   onRefresh: () => Promise<void>;
+  onApply: (updater: (prev: AppState) => AppState) => void;
 }) {
   const [inspect, setInspect] = useState<Bear | null>(null);
   const [viewing, setViewing] = useState<PlayerId>("R");
 
   async function setResult(gameId: GameId, bearId: string | null) {
-    await fetch("/api/results", {
+    const current = state.results[gameId];
+    const base = { ...state.results };
+    if (!bearId) delete base[gameId];
+    const cleared = clearDownstream(base, gameId, current) as Results;
+    const nextResults: Results = bearId ? { ...cleared, [gameId]: bearId } : cleared;
+    onApply((prev) => ({ ...prev, results: nextResults }));
+    const res = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ gameId, bearId })
     });
-    await onRefresh();
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      await onRefresh();
+      return;
+    }
+    onApply((prev) => ({
+      ...prev,
+      results: data?.results ?? nextResults,
+      scores: data?.scores ?? prev.scores
+    }));
   }
 
   async function logout() {
@@ -523,8 +584,8 @@ function MatchupCard({
   onInspect: (bear: Bear) => void;
 }) {
   const sides = contestants(game, picks);
-  const pick = picks[game.id];
-  const official = results[game.id];
+  const pick = picks[game.id] != null ? String(picks[game.id]) : undefined;
+  const official = results[game.id] != null ? String(results[game.id]) : undefined;
   return (
     <article className="overflow-hidden rounded-3xl bg-moss/80">
       <div className="flex items-center justify-between px-4 py-2 text-xs uppercase tracking-widest text-cream/50">

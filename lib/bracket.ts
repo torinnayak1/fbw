@@ -194,8 +194,8 @@ export function contestants(
     return { a: game.seedA, b: game.seedB };
   }
   return {
-    a: game.feedA ? picks[game.feedA] : undefined,
-    b: game.feedB ? picks[game.feedB] : undefined
+    a: game.feedA && picks[game.feedA] != null ? String(picks[game.feedA]) : undefined,
+    b: game.feedB && picks[game.feedB] != null ? String(picks[game.feedB]) : undefined
   };
 }
 

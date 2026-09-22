@@ -37,23 +37,30 @@ export async function GET(request: Request) {
       {} as Record<PlayerId, boolean>
     );
 
-    return NextResponse.json({
-      session,
-      locked,
-      lockAt: LOCK_AT.toISOString(),
-      lockLabel: lockLabel(),
-      now: new Date().toISOString(),
-      bears: BEARS,
-      games: GAMES.map((game) => ({
-        ...game,
-        seeds: contestants(game, {})
-      })),
-      picks: visiblePicks,
-      results: store.results,
-      scores,
-      submitted,
-      updatedAt: store.updatedAt
-    });
+    return NextResponse.json(
+      {
+        session,
+        locked,
+        lockAt: LOCK_AT.toISOString(),
+        lockLabel: lockLabel(),
+        now: new Date().toISOString(),
+        bears: BEARS,
+        games: GAMES.map((game) => ({
+          ...game,
+          seeds: contestants(game, {})
+        })),
+        picks: visiblePicks,
+        results: store.results,
+        scores,
+        submitted,
+        updatedAt: store.updatedAt
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, max-age=0"
+        }
+      }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load picks.";
     return NextResponse.json({ error: message }, { status: 500 });
