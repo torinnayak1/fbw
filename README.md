@@ -41,6 +41,12 @@ npm run dev
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-To share it on the same Wi-Fi, use your machine's local IP instead of localhost. To share off-network, put the app on a host and run `npm run build && npm start`.
+To share it on the same Wi-Fi, use your machine's local IP instead of localhost.
+
+### Vercel
+
+Vercel functions cannot write `data/store.json` (the disk is read-only). This app stores championship data in `/tmp` there, and will use **Upstash Redis** if you add it so all four players share one scoreboard across deploys.
+
+In the Vercel project: **Storage → Create → Upstash Redis**. That injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Redeploy after connecting it.
 
 Photos are the official 2026 Fat Bear Week before/after composites from NPS / Explore.org.

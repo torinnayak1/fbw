@@ -15,6 +15,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Wrong password for that player." }, { status: 401 });
   }
   const response = NextResponse.json({ session });
-  response.headers.set("Set-Cookie", cookieHeader(signSession(session)));
+  response.headers.set("Set-Cookie", cookieHeader(signSession(session), request));
   return response;
 }

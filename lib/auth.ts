@@ -96,12 +96,25 @@ export function readSession(token: string | undefined): Session | null {
   }
 }
 
-export function cookieHeader(token: string): string {
-  return `fbw_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`;
+function cookieSecure(request?: Request): boolean {
+  if (request) {
+    try {
+      return new URL(request.url).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+  return Boolean(process.env.VERCEL);
 }
 
-export function clearCookieHeader(): string {
-  return "fbw_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
+export function cookieHeader(token: string, request?: Request): string {
+  const secure = cookieSecure(request) ? "; Secure" : "";
+  return `fbw_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}${secure}`;
+}
+
+export function clearCookieHeader(request?: Request): string {
+  const secure = cookieSecure(request) ? "; Secure" : "";
+  return `fbw_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
 }
 
 export function tokenFromRequest(request: Request): string | undefined {
