@@ -207,9 +207,9 @@ export function clearDownstream(
   if (!oldWinner) return picks;
   const next = { ...picks };
   let current: GameId | undefined = fromGame;
-  let displaced = oldWinner;
-  while (current && displaced) {
-    const child = CHILDREN[current];
+  const displaced = oldWinner;
+  while (current) {
+    const child: GameId | undefined = CHILDREN[current];
     if (!child) break;
     if (next[child] === displaced) {
       delete next[child];
