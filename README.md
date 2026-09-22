@@ -1,6 +1,6 @@
 # Fat Bear Week 2026 Championship
 
-Private 4-player prediction pool for the official 16-bear Fat Bear Week 2026 bracket.
+Private 7-player prediction pool for the official 16-bear Fat Bear Week 2026 bracket.
 
 ## How it works
 
@@ -28,11 +28,16 @@ As official Fat Bear Week results come in, a ranger/admin logs them so the stand
 | T | `Otis480` |
 | S | `Grazer128` |
 | M | `Chunk32` |
+| B | `Backpack89` |
+| Tej | `BrooksTej` |
+| Mamama | `MamaBear` |
 | Ranger / Admin | `Ranger2026` |
 
 ## Run it
 
-All four players need to hit the **same running server** so picks and scores stay in sync.
+All seven players need to hit the **same running server** so picks and scores stay in sync.
+
+Copy `.env.example` to `.env.local` and fill in your Supabase project URL plus keys. The secret key stays on the server; the publishable key is used only for live UI updates.
 
 ```bash
 npm install
@@ -41,12 +46,10 @@ npm run dev
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-To share it on the same Wi-Fi, use your machine's local IP instead of localhost.
+Picks are stored in the Supabase `picks` table (one row per matchup: `Round`, `R`, `T`, `S`, `M`, `B`, `Tej`, `Mamama`, `Results`). Run `supabase/setup.sql` once in the Supabase SQL editor so Realtime can push table changes into the app.
 
 ### Vercel
 
-Vercel functions cannot write `data/store.json` (the disk is read-only). This app stores championship data in `/tmp` there, and will use **Upstash Redis** if you add it so all four players share one scoreboard across deploys.
-
-In the Vercel project: **Storage → Create → Upstash Redis**. That injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Redeploy after connecting it.
+Add the same env vars from `.env.example` in the Vercel project settings, then redeploy.
 
 Photos are the official 2026 Fat Bear Week before/after composites from NPS / Explore.org.

@@ -15,7 +15,7 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   title: "Fat Bear Week 2026 Championship",
-  description: "Four-player Fat Bear Week 2026 prediction championship."
+  description: "Seven-player Fat Bear Week 2026 prediction championship."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

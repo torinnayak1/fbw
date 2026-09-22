@@ -45,10 +45,15 @@ export async function POST(request: Request) {
     };
   }
 
-  const saved = await saveResults(results);
-  return NextResponse.json({
-    results: saved.results,
-    scores: leaderboard(saved.picks, saved.results),
-    updatedAt: saved.updatedAt
-  });
+  try {
+    const saved = await saveResults(results);
+    return NextResponse.json({
+      results: saved.results,
+      scores: leaderboard(saved.picks, saved.results),
+      updatedAt: saved.updatedAt
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not save result.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

@@ -9,7 +9,9 @@ import {
   contestants,
   type Game
 } from "@/lib/bracket";
+import { PLAYERS } from "@/lib/auth";
 import type { GameId, Picks, PlayerId, Results, ScoreRow, Session } from "@/lib/types";
+import { usePicksLive } from "@/lib/use-picks-live";
 
 type AppState = {
   session: Session;
@@ -23,7 +25,7 @@ type AppState = {
   submitted: Record<PlayerId, boolean>;
 };
 
-const PLAYERS: PlayerId[] = ["R", "T", "S", "M"];
+const PLAYER_IDS: PlayerId[] = PLAYERS.map((player) => player.id);
 
 export function ChampionshipApp() {
   const [state, setState] = useState<AppState | null>(null);
@@ -32,18 +34,18 @@ export function ChampionshipApp() {
 
   const load = useCallback(async () => {
     const res = await fetch("/api/state", { cache: "no-store" });
+    const payload = await res.json().catch(() => null);
     if (res.status === 401) {
       setState(null);
       setAuthChecked(true);
       return;
     }
     if (!res.ok) {
-      setError("Could not load the championship.");
+      setError(payload?.error ?? "Could not load the championship.");
       setAuthChecked(true);
       return;
     }
-    const data = (await res.json()) as AppState;
-    setState(data);
+    setState(payload as AppState);
     setAuthChecked(true);
     setError("");
   }, []);
@@ -52,11 +54,7 @@ export function ChampionshipApp() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!state?.session) return;
-    const id = window.setInterval(() => void load(), 15000);
-    return () => window.clearInterval(id);
-  }, [load, state?.session.userId]);
+  usePicksLive(Boolean(state?.session), load);
 
   if (!authChecked) {
     return (
@@ -108,7 +106,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="mx-auto min-h-screen max-w-6xl px-4 pb-16 pt-6 sm:px-6">
       <header className="mb-8 text-center">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-gold">
-          Katmai National Park · 4-Player Pool
+          Katmai National Park · 7-Player Pool
         </p>
         <h1 className="title-stroke font-display text-4xl leading-none text-salmon sm:text-6xl">
           FAT BEAR WEEK
@@ -134,16 +132,16 @@ function LoginScreen({
   return (
     <section className="mx-auto max-w-md rounded-3xl bg-moss/80 p-6 pixel-border">
       <p className="mb-4 text-center text-sm text-cream/80">
-        Sign in with your letter. Brackets lock tonight at 11:59 PM Pacific.
+        Sign in as yourself. Brackets lock tonight at 11:59 PM Pacific.
         Correct winners score 1 / 2 / 4 / 8 points as rounds go deeper.
       </p>
-      <div className="mb-5 grid grid-cols-4 gap-2">
-        {PLAYERS.map((id) => (
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {PLAYER_IDS.map((id) => (
           <button
             key={id}
             type="button"
             onClick={() => setUserId(id)}
-            className={`rounded-2xl py-4 font-display text-2xl transition ${
+            className={`rounded-2xl px-2 py-4 font-display text-lg leading-tight transition sm:text-xl ${
               userId === id
                 ? "bg-salmon text-cream"
                 : "bg-spruce text-cream/70 hover:bg-canopy"
@@ -237,7 +235,7 @@ function PlayerView({
       <Standings scores={state.scores} submitted={state.submitted} locked={state.locked} />
       {state.locked ? (
         <div className="flex flex-wrap items-center justify-center gap-2">
-          {PLAYERS.map((id) => (
+          {PLAYER_IDS.map((id) => (
             <button
               key={id}
               type="button"
@@ -312,7 +310,7 @@ function AdminView({
         onInspect={setInspect}
       />
       <div className="flex flex-wrap items-center justify-center gap-2">
-        {PLAYERS.map((id) => (
+        {PLAYER_IDS.map((id) => (
           <button
             key={id}
             type="button"
@@ -417,16 +415,16 @@ function Standings({
   locked: boolean;
 }) {
   return (
-    <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {scores.map((row, index) => (
         <article
           key={row.userId}
-          className={`rounded-2xl bg-spruce/80 p-4 ${index === 0 ? "pixel-border" : ""}`}
+          className={`rounded-2xl bg-spruce/80 p-4 ${index === 0 && row.points > 0 ? "pixel-border" : ""}`}
         >
           <p className="text-xs uppercase tracking-widest text-cream/50">
             {index === 0 && row.points > 0 ? "Leading" : `Place ${index + 1}`}
           </p>
-          <p className="font-display text-3xl text-gold">{row.userId}</p>
+          <p className="font-display text-2xl leading-tight text-gold sm:text-3xl">{row.userId}</p>
           <p className="text-2xl font-bold text-cream">{row.points}</p>
           <p className="text-xs text-cream/50">
             {ROUND_POINTS.r16}/{ROUND_POINTS.qf}/{ROUND_POINTS.sf}/{ROUND_POINTS.f} pts by round

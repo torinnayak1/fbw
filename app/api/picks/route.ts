@@ -56,11 +56,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing pick." }, { status: 400 });
   }
 
-  const saved = await savePicks(session.userId, nextPicks);
-  return NextResponse.json({
-    picks: { [session.userId]: saved.picks[session.userId] },
-    scores: leaderboard(saved.picks, saved.results),
-    complete: picksComplete(saved.picks[session.userId]),
-    updatedAt: saved.updatedAt
-  });
+  try {
+    const saved = await savePicks(session.userId, nextPicks);
+    return NextResponse.json({
+      picks: { [session.userId]: saved.picks[session.userId] },
+      scores: leaderboard(saved.picks, saved.results),
+      complete: picksComplete(saved.picks[session.userId]),
+      updatedAt: saved.updatedAt
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not save pick.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

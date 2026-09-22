@@ -1,4 +1,5 @@
-export type PlayerId = "R" | "T" | "S" | "M";
+export const PLAYER_IDS = ["R", "T", "S", "M", "B", "Tej", "Mamama"] as const;
+export type PlayerId = (typeof PLAYER_IDS)[number];
 export type UserId = PlayerId | "admin";
 export type RoundId = "r16" | "qf" | "sf" | "f";
 export type GameId =
@@ -32,6 +33,18 @@ export type StoreData = {
   results: Results;
   updatedAt: string;
 };
+
+export function emptyPlayerPicks(): Record<PlayerId, Picks> {
+  return {
+    R: {},
+    T: {},
+    S: {},
+    M: {},
+    B: {},
+    Tej: {},
+    Mamama: {}
+  };
+}
 
 export type ScoreRow = {
   userId: PlayerId;

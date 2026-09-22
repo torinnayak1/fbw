@@ -4,3 +4,6 @@ data/store.json
 .DS_Store
 .venv
 *.log
+.env
+.env.*
+!.env.example

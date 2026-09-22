@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
-import type { PlayerId, Session, UserId } from "./types";
+import { PLAYER_IDS, type PlayerId, type Session, type UserId } from "./types";
 
 const SALT = "fbw-championship-2026-katmai";
 const SECRET = "fbw-2026-session-katmai-brooks-river";
@@ -8,7 +8,10 @@ export const PLAYERS: { id: PlayerId; name: string }[] = [
   { id: "R", name: "R" },
   { id: "T", name: "T" },
   { id: "S", name: "S" },
-  { id: "M", name: "M" }
+  { id: "M", name: "M" },
+  { id: "B", name: "B" },
+  { id: "Tej", name: "Tej" },
+  { id: "Mamama", name: "Mamama" }
 ];
 
 const USERS: Record<
@@ -33,6 +36,21 @@ const USERS: Record<
   M: {
     name: "M",
     hash: "78ce8b76df37d870d79d602517f3a7a3907aef43fb6559d3eca029d85ae9ed9c",
+    isAdmin: false
+  },
+  B: {
+    name: "B",
+    hash: "dcab5fd53af144e295e3a69b4e2c9cc67ee2a021a1fb5a94063fff9b7217169d",
+    isAdmin: false
+  },
+  Tej: {
+    name: "Tej",
+    hash: "4081a2d65932c018b37403b5fa7e9d79ed36438a901e0abc88e076201d11e48e",
+    isAdmin: false
+  },
+  Mamama: {
+    name: "Mamama",
+    hash: "f5b80434ad3ab72a12b8ef173096be1ab28e227459b6301769dd6423c277ae5b",
     isAdmin: false
   },
   admin: {
@@ -128,5 +146,5 @@ export function sessionFromRequest(request: Request): Session | null {
 }
 
 export function isPlayerId(value: string): value is PlayerId {
-  return value === "R" || value === "T" || value === "S" || value === "M";
+  return (PLAYER_IDS as readonly string[]).includes(value);
 }
