@@ -10,7 +10,8 @@ import {
   contestants,
   type Game
 } from "@/lib/bracket";
-import { PLAYERS } from "@/lib/auth";
+import { PLAYERS } from "@/lib/players";
+import { leaderboard, picksComplete } from "@/lib/scoring";
 import type { GameId, Picks, PlayerId, Results, ScoreRow, Session } from "@/lib/types";
 import { usePicksLive } from "@/lib/use-picks-live";
 
@@ -28,16 +29,22 @@ type AppState = {
 
 const PLAYER_IDS: PlayerId[] = PLAYERS.map((player) => player.id);
 
-function mergeAppState(prev: AppState | null, incoming: AppState): AppState {
-  if (!prev) return incoming;
-  const picks = { ...incoming.picks };
-  for (const [id, local] of Object.entries(prev.picks)) {
-    picks[id] = { ...local, ...picks[id] };
-  }
+function submittedFrom(picks: Record<string, Picks>): Record<PlayerId, boolean> {
+  return PLAYER_IDS.reduce(
+    (acc, id) => {
+      acc[id] = picksComplete(picks[id] ?? {});
+      return acc;
+    },
+    {} as Record<PlayerId, boolean>
+  );
+}
+
+function withDerived(state: AppState): AppState {
+  const picks = state.picks as Record<PlayerId, Picks>;
   return {
-    ...incoming,
-    picks,
-    results: { ...prev.results, ...incoming.results }
+    ...state,
+    scores: leaderboard(picks, state.results),
+    submitted: submittedFrom(state.picks)
   };
 }
 
@@ -62,14 +69,14 @@ export function ChampionshipApp() {
       setAuthChecked(true);
       return;
     }
-    setState((prev) => mergeAppState(prev, payload as AppState));
+    setState(withDerived(payload as AppState));
     setAuthChecked(true);
     setError("");
   }, []);
 
   const applyState = useCallback((updater: (prev: AppState) => AppState) => {
     loadSeq.current += 1;
-    setState((prev) => (prev ? updater(prev) : prev));
+    setState((prev) => (prev ? withDerived(updater(prev)) : prev));
   }, []);
 
   useEffect(() => {
@@ -256,11 +263,12 @@ function PlayerView({
       }
       onApply((prev) => ({
         ...prev,
-        picks: { ...prev.picks, ...data.picks },
-        scores: data.scores ?? prev.scores,
-        submitted: {
-          ...prev.submitted,
-          [playerId]: Boolean(data.complete)
+        picks: {
+          ...prev.picks,
+          [playerId]: {
+            ...nextPicks,
+            ...(data.picks?.[playerId] ?? {})
+          }
         }
       }));
     } finally {
@@ -342,8 +350,10 @@ function AdminView({
     }
     onApply((prev) => ({
       ...prev,
-      results: data?.results ?? nextResults,
-      scores: data?.scores ?? prev.scores
+      results:
+        data?.results && Object.keys(data.results).length > 0
+          ? data.results
+          : nextResults
     }));
   }
 

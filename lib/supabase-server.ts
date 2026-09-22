@@ -7,6 +7,10 @@ export function supabaseServer(): SupabaseClient {
     throw new Error("Missing SUPABASE_URL or SUPABASE_SECRET_KEY.");
   }
   return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false }
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" })
+    }
   });
 }

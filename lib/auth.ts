@@ -1,18 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { PLAYER_IDS, type PlayerId, type Session, type UserId } from "./types";
+import { PLAYERS } from "./players";
+
+export { PLAYERS };
 
 const SALT = "fbw-championship-2026-katmai";
 const SECRET = "fbw-2026-session-katmai-brooks-river";
-
-export const PLAYERS: { id: PlayerId; name: string }[] = [
-  { id: "R", name: "R" },
-  { id: "T", name: "T" },
-  { id: "S", name: "S" },
-  { id: "M", name: "M" },
-  { id: "B", name: "B" },
-  { id: "Tej", name: "Tej" },
-  { id: "Mamama", name: "Mamama" }
-];
 
 const USERS: Record<
   UserId,

@@ -1,5 +1,5 @@
 import { GAMES, ROUND_POINTS } from "./bracket";
-import { PLAYERS } from "./auth";
+import { PLAYERS } from "./players";
 import type { PlayerId, Picks, Results, RoundId, ScoreRow } from "./types";
 
 export function scorePicks(picks: Picks, results: Results): Omit<ScoreRow, "userId" | "name"> {
@@ -11,7 +11,7 @@ export function scorePicks(picks: Picks, results: Results): Omit<ScoreRow, "user
     const official = results[game.id];
     if (!official) continue;
     possible += 1;
-    if (picks[game.id] === official) {
+    if (String(picks[game.id]) === String(official)) {
       byRound[game.round] += ROUND_POINTS[game.round];
       correct += 1;
     }

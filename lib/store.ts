@@ -16,21 +16,31 @@ const EMPTY: StoreData = {
   updatedAt: new Date(0).toISOString()
 };
 
-type Schema = {
-  round: string;
-  results: string;
-  players: Record<PlayerId, string>;
+const GAME_IDS = new Set<string>(GAMES.map((game) => game.id));
+
+const WRITE_ROUND = "Round";
+const WRITE_RESULTS = "Results";
+const WRITE_PLAYERS: Record<PlayerId, string> = {
+  R: "R",
+  T: "T",
+  S: "S",
+  M: "M",
+  B: "B",
+  Tej: "Tej",
+  Mamama: "Mamama"
 };
-
-type GlobalCache = typeof globalThis & { __fbwSchema?: Schema };
-
-function cache(): GlobalCache {
-  return globalThis as GlobalCache;
-}
 
 function asRow(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object") return value as Record<string, unknown>;
   return {};
+}
+
+function lowerRow(row: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    next[key.toLowerCase()] = value;
+  }
+  return next;
 }
 
 function text(value: unknown): string | null {
@@ -39,115 +49,84 @@ function text(value: unknown): string | null {
   return next.length ? next : null;
 }
 
-function quotedPlayers(): Record<PlayerId, string> {
-  return {
-    R: "R",
-    T: "T",
-    S: "S",
-    M: "M",
-    B: "B",
-    Tej: "Tej",
-    Mamama: "Mamama"
-  };
+function asGameId(value: string | null): GameId | null {
+  if (!value || !GAME_IDS.has(value)) return null;
+  return value as GameId;
 }
 
-function resolveKey(row: Record<string, unknown>, preferred: string): string {
-  if (preferred in row) return preferred;
-  const match = Object.keys(row).find(
-    (key) => key.toLowerCase() === preferred.toLowerCase()
-  );
-  return match ?? preferred;
+function asBearId(value: string | null): string | null {
+  if (!value) return null;
+  const digits = value.match(/^\d+/);
+  return digits ? digits[0] : value;
 }
 
-function lookup(row: Record<string, unknown>, key: string): unknown {
-  if (key in row) return row[key];
-  const match = Object.keys(row).find((item) => item.toLowerCase() === key.toLowerCase());
-  return match ? row[match] : undefined;
-}
-
-async function detectSchema(): Promise<Schema> {
-  if (cache().__fbwSchema) return cache().__fbwSchema as Schema;
-  const quoted: Schema = {
-    round: "Round",
-    results: "Results",
-    players: quotedPlayers()
-  };
-  const { data, error } = await supabaseServer().from("picks").select("*").limit(1);
-  if (error) throw error;
-  if (!data?.length) return quoted;
-  const row = asRow(data[0]);
-  const schema: Schema = {
-    round: resolveKey(row, "Round"),
-    results: resolveKey(row, "Results"),
-    players: Object.fromEntries(
-      PLAYER_IDS.map((id) => [id, resolveKey(row, id)])
-    ) as Record<PlayerId, string>
-  };
-  cache().__fbwSchema = schema;
-  return schema;
-}
-
-function rowsToStore(rows: Record<string, unknown>[], schema: Schema): StoreData {
+function rowsToStore(rows: Record<string, unknown>[]): StoreData {
   const store: StoreData = {
     picks: emptyPlayerPicks(),
     results: {},
     updatedAt: new Date().toISOString()
   };
-  for (const row of rows) {
-    const gameId = text(lookup(row, schema.round)) as GameId | null;
+  for (const raw of rows) {
+    const row = lowerRow(raw);
+    const gameId = asGameId(text(row.round));
     if (!gameId) continue;
     for (const player of PLAYER_IDS) {
-      const pick = text(lookup(row, schema.players[player]));
+      const pick = asBearId(text(row[player.toLowerCase()]));
       if (pick) store.picks[player][gameId] = pick;
     }
-    const official = text(lookup(row, schema.results));
+    const official = asBearId(text(row.results));
     if (official) store.results[gameId] = official;
   }
   return store;
 }
 
 export async function readStore(): Promise<StoreData> {
-  const schema = await detectSchema();
   const { data, error } = await supabaseServer().from("picks").select("*");
   if (error) throw error;
   if (!data?.length) return EMPTY;
-  return rowsToStore(data.map(asRow), schema);
+  return rowsToStore(data.map(asRow));
+}
+
+async function updateCell(
+  column: string,
+  gameId: GameId,
+  value: string | null
+): Promise<void> {
+  const client = supabaseServer();
+  const quoted = await client
+    .from("picks")
+    .update({ [column]: value })
+    .eq(WRITE_ROUND, gameId)
+    .select("*");
+  if (!quoted.error && quoted.data?.length) return;
+  const lower = await client
+    .from("picks")
+    .update({ [column.toLowerCase()]: value })
+    .eq("round", gameId)
+    .select("*");
+  if (lower.error) throw lower.error;
+  if (quoted.error && !lower.data?.length) throw quoted.error;
 }
 
 async function writeChangedCells(
-  column: string,
+  columnFor: (gameId: GameId) => string,
   next: Partial<Record<GameId, string | null>>,
   previous: Partial<Record<GameId, string>>
 ): Promise<void> {
-  const schema = await detectSchema();
-  const client = supabaseServer();
-  const updates = GAMES.flatMap((game) => {
-    const value = next[game.id] ?? null;
-    const before = previous[game.id] ?? null;
-    if (value === before) return [];
-    return [
-      client
-        .from("picks")
-        .update({ [column]: value })
-        .eq(schema.round, game.id)
-    ];
-  });
-  if (!updates.length) return;
-  const results = await Promise.all(updates);
-  const failed = results.find((result) => result.error);
-  if (failed?.error) throw failed.error;
+  const updates = GAMES.filter((game) => (next[game.id] ?? null) !== (previous[game.id] ?? null)).map(
+    (game) => updateCell(columnFor(game.id), game.id, next[game.id] ?? null)
+  );
+  await Promise.all(updates);
 }
 
 export async function savePicks(player: PlayerId, picks: Picks): Promise<StoreData> {
-  const schema = await detectSchema();
   const current = await readStore();
-  await writeChangedCells(schema.players[player], picks, current.picks[player]);
+  await writeChangedCells(() => WRITE_PLAYERS[player], picks, current.picks[player]);
   return readStore();
 }
 
 export async function saveResults(results: Results): Promise<StoreData> {
-  const schema = await detectSchema();
   const current = await readStore();
-  await writeChangedCells(schema.results, results, current.results);
+  await writeChangedCells(() => WRITE_RESULTS, results, current.results);
   return readStore();
 }
