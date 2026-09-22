@@ -1,4 +1,4 @@
-export const LOCK_AT = new Date("2026-09-23T06:59:59.999Z");
+export const LOCK_AT = new Date("2026-09-23T01:00:00.000Z");
 
 export function isLocked(now: Date = new Date()): boolean {
   return now.getTime() >= LOCK_AT.getTime();
