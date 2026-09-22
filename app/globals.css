@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(228, 90, 50, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 100% 100%, rgba(61, 138, 134, 0.16), transparent 50%),
+    linear-gradient(180deg, #101c16 0%, #0c1410 100%);
+  color: #f6ead2;
+}
+
+.pixel-border {
+  box-shadow:
+    0 0 0 2px #1a120c,
+    0 0 0 5px #f0c14b,
+    0 0 0 8px #1a120c;
+}
+
+.salmon-border {
+  box-shadow:
+    0 0 0 2px #1a120c,
+    0 0 0 5px #e45a32,
+    0 0 0 8px #1a120c;
+}
+
+.title-stroke {
+  text-shadow:
+    3px 0 #1a120c,
+    -3px 0 #1a120c,
+    0 3px #1a120c,
+    0 -3px #1a120c,
+    2px 2px #1a120c,
+    -2px 2px #1a120c;
+}
