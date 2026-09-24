@@ -135,7 +135,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="mx-auto min-h-screen max-w-6xl px-4 pb-16 pt-6 sm:px-6">
       <header className="mb-8 text-center">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-gold">
-          Katmai National Park · 7-Player Pool
+          Katmai National Park · 9-Player Pool
         </p>
         <h1 className="title-stroke font-display text-4xl leading-none text-salmon sm:text-6xl">
           FAT BEAR WEEK
@@ -161,10 +161,10 @@ function LoginScreen({
   return (
     <section className="mx-auto max-w-md rounded-3xl bg-moss/80 p-6 pixel-border">
       <p className="mb-4 text-center text-sm text-cream/80">
-        Sign in as yourself. Brackets lock tonight at 11:59 PM Pacific.
+        Sign in as yourself. Brackets are locked — you can view every sheet.
         Correct winners score 1 / 2 / 4 / 8 points as rounds go deeper.
       </p>
-      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-5 grid grid-cols-3 gap-2">
         {PLAYER_IDS.map((id) => (
           <button
             key={id}

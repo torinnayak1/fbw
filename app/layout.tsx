@@ -15,7 +15,14 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   title: "Fat Bear Week 2026 Championship",
-  description: "Seven-player Fat Bear Week 2026 prediction championship."
+  description: "Nine-player Fat Bear Week 2026 prediction championship.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon" },
+      { url: "/icon.png", type: "image/png", sizes: "192x192" }
+    ],
+    apple: { url: "/apple-icon.png", sizes: "180x180" }
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

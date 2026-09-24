@@ -46,6 +46,16 @@ const USERS: Record<
     hash: "f5b80434ad3ab72a12b8ef173096be1ab28e227459b6301769dd6423c277ae5b",
     isAdmin: false
   },
+  Kyla: {
+    name: "Kyla",
+    hash: "54bc67e2009e7bab846756fa7d21dfecac1ef3178b88680d66005b44ff0ce824",
+    isAdmin: false
+  },
+  Carly: {
+    name: "Carly",
+    hash: "1935aa300ef7b2753ad12d203314ef0e3cc141de37c5f6892a1b3ac58577c814",
+    isAdmin: false
+  },
   admin: {
     name: "Admin",
     hash: "a39e296c19ff7ca0f50922880acd7e9f4515d150e9552e90086c2e27d45249a7",

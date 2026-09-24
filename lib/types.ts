@@ -1,4 +1,14 @@
-export const PLAYER_IDS = ["R", "T", "S", "M", "B", "Tej", "Mamama"] as const;
+export const PLAYER_IDS = [
+  "R",
+  "T",
+  "S",
+  "M",
+  "B",
+  "Tej",
+  "Mamama",
+  "Kyla",
+  "Carly"
+] as const;
 export type PlayerId = (typeof PLAYER_IDS)[number];
 export type UserId = PlayerId | "admin";
 export type RoundId = "r16" | "qf" | "sf" | "f";
@@ -42,7 +52,9 @@ export function emptyPlayerPicks(): Record<PlayerId, Picks> {
     M: {},
     B: {},
     Tej: {},
-    Mamama: {}
+    Mamama: {},
+    Kyla: {},
+    Carly: {}
   };
 }
 

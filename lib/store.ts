@@ -27,7 +27,9 @@ const WRITE_PLAYERS: Record<PlayerId, string> = {
   M: "M",
   B: "B",
   Tej: "Tej",
-  Mamama: "Mamama"
+  Mamama: "Mamama",
+  Kyla: "Kyla",
+  Carly: "Carly"
 };
 
 function asRow(value: unknown): Record<string, unknown> {
